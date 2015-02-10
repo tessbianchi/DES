@@ -1,5 +1,6 @@
 import java.lang.String;
-
+import java.util.*;
+import java.io.*;
 
 
 
@@ -17,19 +18,21 @@ public class DES{
 
 	static String ptxt;//make this one giant string of ptxt
 	static String ctxt;
-	static String key = "";
 	static int blockSize;
 	static int keysize;
 	static int effkeysize;
 	static int roundkeysize;
 	static int numOfRounds;
-	static int [] pc1_key = new int[effkeysize];
-	static int [] pc2_key = new int[roundkeysize];
-	static int [] rotationsched_key = new int[numOfRounds];
-	static int [] intitialPerm = new int[blockSize];
-	static int [] expansionPerm = new int[blockSize];
-	static int [] pBox = new int[blockSize/2];
+	static int [] pc1_key;
+	static int [] pc2_key;
+	static int [] rotationsched_key;
+	static int [] initialPerm;
+	static int [] expansionPerm;
+	static int [] pBox;
 	static int numberOfSboxes;
+	static int [] rowSelection;
+	static int [] colSelection;
+	
 
 	/*
 	REPORT RIGIDNESS HERE
@@ -71,80 +74,237 @@ public static String BinTohex(String bin) {//fix dis
 
 public static String inititalpermute(String p){
 	String temp;
-
+	return p;
+	
 } 
-public static void encrypt(){
-	if(hexadec){
-		ptxt = hexToBinary(ptxt);
-		key = hexToBinary(key);
+
+
+public static String getInput(String inputFile){
+	try{
+		System.setIn(new FileInputStream(inputFile));		
 	}
-	int len = ptxt.length();
-	String ans; 
-	String temp = "";
-	String s;
-	String right = "";
-	String left "";
-	for(int j = 0; j!= numOfRounds; ++j){
-		for(int i = 0; i < len; i = i+blockSize){
-			if((i + blockSize) > len){//if this is the last one and it is too short
-				int l = len - i;
-				s = ptxt.substring(i,len);
-				for(int j = l; j!= blockSize; ++j){
-					s = "0" + s;
-				}
-				temp = inititalpermute(s);
-			}else{
-				s = ptxt.substring(i,i+blockSize);
-				temp = inititalpermute(s);
-			}
+	catch(FileNotFoundException ex){
+		System.out.println("Input file can not be found.");
+	}
+	Scanner scanner = new Scanner(System.in);
+	scanner.useDelimiter(" ");  
+	String input = scanner.next(); 
+	return input;	
+}
+public static void getParams(String paramFile){
+	try{
+		System.setIn(new FileInputStream(paramFile));		
+	}
+	catch(FileNotFoundException ex){
+		System.out.println("Input file can not be found.");
+	}
+	Scanner scanner = new Scanner(System.in);
+	scanner.useDelimiter(" "); 
+	
+	while(!scanner.hasNextInt())	//We are assuming that if a line contains
+		scanner.nextLine();			//a parameter, it will begin with said parameter
+									//as comments would be after it
+	
+	//block size
+	blockSize = scanner.nextInt();
+	while(!scanner.hasNextInt())	
+		scanner.nextLine();												
+	
+	//key size
+	keysize = scanner.nextInt();
+	while(!scanner.hasNextInt()) 
+		scanner.nextLine();
+	
+	//Effective key size
+	effkeysize = scanner.nextInt();
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//round key size
+	roundkeysize = scanner.nextInt();
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//number of rounds
+	numOfRounds = scanner.nextInt();
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	
+	pc1_key = new int[effkeysize];
+	pc2_key = new int[roundkeysize];
+	rotationsched_key = new int[numOfRounds];
+	initialPerm = new int[blockSize];
+	expansionPerm = new int[blockSize];
+	pBox = new int[blockSize/2];
+	
+	
+	//Initial Permuted Choice for Round Key Generation PC-1
+	for(int i = 0; i!=effkeysize; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for PC-1 does not contain enough integers or input is incorrect format.");
 		}
+		pc1_key[i] = scanner.nextInt();
 	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//Permuted Choice to set bits for Round Key PC-2
+	for(int i = 0; i!=roundkeysize; ++i){
 
-
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for PC-2 does not contain enough integers or input is incorrect format. (i.e. non-integer types)");
+			System.out.println(scanner.next());
+		}
+		pc2_key[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//Left Rotation Schedule RS
+	for(int i = 0; i!=numOfRounds; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for Rotation Scheduler does not contain enough integers or input is incorrect format.");
+		}
+		rotationsched_key[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//initial Permutation IP
+	for(int i = 0; i!=blockSize; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for IP does not contain enough integers or input is incorrect format.");
+		}
+		initialPerm[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	expansionPerm = new int[blockSize];
+	//expansion Permutation EP
+	for(int i = 0; i!=roundkeysize; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for EP does not contain enough integers or input is incorrect format.");
+		}
+		expansionPerm[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//P-box transposition Permutation EP
+	for(int i = 0; i!=blockSize; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for P-box does not contain enough integers or input is incorrect format.");
+		}
+		pBox[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	numberOfSboxes = scanner.nextInt();
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+		
+		
+	int x = roundkeysize/numberOfSboxes - 
+	rowSelection = new int[roundkeysize/numberOfSboxes];
+	colSelection;
+	
+	
+	printUsefulData();
+	
+	//return void;	
 }
 
+public static void printUsefulData(){ // to make programming easier
+	
+	
+	
 
+	
+	System.out.println("blockSize: "+ blockSize);
+	System.out.println("keysize: "+ keysize);
+	System.out.println("effkeysize: "+ effkeysize);
+	System.out.println("roundkeysize: "+ roundkeysize);
+	System.out.println("numOfRounds: "+ numOfRounds);
+		
+	System.out.println("pc1_key: ");
+	for(int i = 0; i!=pc1_key.length; ++i)
+		System.out.println(pc1_key[i]+" ");
+	System.out.println();
+	
+	System.out.println("pc2_key: ");
+	for(int i = 0; i!=pc2_key.length; ++i)
+		System.out.println(pc2_key[i]+" ");
+	System.out.println();
+	
+	System.out.println("rotationsched_key: ");
+	for(int i = 0; i!=rotationsched_key.length; ++i)
+		System.out.println(rotationsched_key[i]+" ");
+	System.out.println();
+	
+	System.out.println("initialPerm: ");
+	for(int i = 0; i!=initialPerm.length; ++i)
+		System.out.println(initialPerm[i]+" ");
+	System.out.println();
+	
+	System.out.println("expansionPerm: ");
+	for(int i = 0; i!=expansionPerm.length; ++i)
+		System.out.println(expansionPerm[i]+" ");
+	System.out.println();
+	
+	System.out.println("pBox: ");
+	for(int i = 0; i!=pBox.length; ++i)
+		System.out.println(pBox[i]+" ");
+	System.out.println();
+	
+	System.out.println("blockSize: "+ blockSize);
+	System.out.println("blockSize: "+ blockSize);
+	
+	
+	//static int numberOfSboxes;
+}
 
 
 public static void main(String[] args){
 
-numOfRounds = 2;
-blockSize = 2;
-ptxt = "00100000"
+	numOfRounds = 2;
+	blockSize = 2;
+	ptxt = "00100000";
 
-		for(int i = 0; i!= args.length; ++i){
-			int l = args[i].length();
-			if(args[i].charAt(1) == 'i'){
-				inputtext = args[i].substring(2,l);
-			}else if(args[i].charAt(1) == 'o'){
-				outputtext = args[i].substring(2,l);
-			}else if(args[i].charAt(1) == 'd'){
-				String temp = outputtext;
-				outputtext = inputtext;
-				inputtext = temp;
-				encrypt = false;
-			}else if(args[i].charAt(1) == 'k'){
-				key = args[i].substring(2,l);
-			}else if(args[i].charAt(1) == 'p'){
-				paramtext = args[i].substring(2,l);
-			}else if(args[i].charAt(1) == 's'){
-				showSteps = true;
-			}else if(args[i].charAt(1) == 'x'){
-				hexadec = true;
+			for(int i = 0; i!= args.length; ++i){
+				int l = args[i].length();
+				if(args[i].charAt(1) == 'i'){
+					inputtext = args[i].substring(2,l);
+				}else if(args[i].charAt(1) == 'o'){
+					outputtext = args[i].substring(2,l);
+				}else if(args[i].charAt(1) == 'd'){
+					String temp = outputtext;
+					outputtext = inputtext;
+					inputtext = temp;
+					encrypt = false;
+				}else if(args[i].charAt(1) == 'k'){
+					key = args[i].substring(2,l);
+				}else if(args[i].charAt(1) == 'p'){
+					paramtext = args[i].substring(2,l);
+				}else if(args[i].charAt(1) == 's'){
+					showSteps = true;
+				}else if(args[i].charAt(1) == 'x'){
+					hexadec = true;
+				}
+
 			}
+	String input = getInput(inputtext);	
 
-		}
-	/*
-	if(encrypt){
-		encrypt();
-	}else{
-		decrypt();
-	}
-	*/
-
-String hi = BinTohex("01100110");
-System.out.println(hi);
-
+	getParams(paramtext);
+	
+	
+	
+	
+	String hi = BinTohex("01100110");
+	System.out.println(input);
+	
 
 
 	}

@@ -1,6 +1,7 @@
 import java.lang.String;
 import java.util.*;
 import java.io.*;
+import java.lang.*;
 
 
 
@@ -32,6 +33,8 @@ public class DES{
 	static int numberOfSboxes;
 	static int [] rowSelection;
 	static int [] colSelection;
+	static int [][][] sBoxes;
+	
 	
 
 	/*
@@ -99,7 +102,7 @@ public static void getParams(String paramFile){
 		System.out.println("Input file can not be found.");
 	}
 	Scanner scanner = new Scanner(System.in);
-	scanner.useDelimiter(" "); 
+	scanner.reset(); 
 	
 	while(!scanner.hasNextInt())	//We are assuming that if a line contains
 		scanner.nextLine();			//a parameter, it will begin with said parameter
@@ -151,10 +154,9 @@ public static void getParams(String paramFile){
 	
 	//Permuted Choice to set bits for Round Key PC-2
 	for(int i = 0; i!=roundkeysize; ++i){
-
 		if(!scanner.hasNextInt()){
 			System.out.println("Error: Input for PC-2 does not contain enough integers or input is incorrect format. (i.e. non-integer types)");
-			System.out.println(scanner.next());
+			
 		}
 		pc2_key[i] = scanner.nextInt();
 	}
@@ -193,9 +195,10 @@ public static void getParams(String paramFile){
 		scanner.nextLine();
 	
 	//P-box transposition Permutation EP
-	for(int i = 0; i!=blockSize; ++i){
+	for(int i = 0; i!=blockSize/2; ++i){
 		if(!scanner.hasNextInt()){
 			System.out.println("Error: Input for P-box does not contain enough integers or input is incorrect format.");
+			//System.out.println(scanner.next());
 		}
 		pBox[i] = scanner.nextInt();
 	}
@@ -207,15 +210,63 @@ public static void getParams(String paramFile){
 		scanner.nextLine();
 		
 		
-	int x = roundkeysize/numberOfSboxes - 
-	rowSelection = new int[roundkeysize/numberOfSboxes];
-	colSelection;
+	int x = roundkeysize/numberOfSboxes - blockSize/2/numberOfSboxes;
+	int y = blockSize/2/numberOfSboxes;
+	rowSelection = new int[x];
+	colSelection = new int[y];
+	
+	//row
+	for(int i = 0; i != x; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for row does not contain enough integers or input is incorrect format.");
+			//System.out.println(scanner.next());
+		}
+		rowSelection[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	//col
+	for(int i = 0; i != y; ++i){
+		if(!scanner.hasNextInt()){
+			System.out.println("Error: Input for col does not contain enough integers or input is incorrect format.");
+			//System.out.println(scanner.next());
+		}
+		colSelection[i] = scanner.nextInt();
+	}
+	while(!scanner.hasNextInt())
+		scanner.nextLine();
+	
+	sBoxes = new int[numberOfSboxes][(int)Math.pow(2,x)][(int)Math.pow(2,y)];
+	
+	for(int i = 0; i != numberOfSboxes; ++i){
+		for(int j = 0; j!= sBoxes[i].length; ++j){
+			for(int k = 0; k != sBoxes[i][j].length; ++k){
+				if(!scanner.hasNextInt()){
+					System.out.println("Error: Input for sBox "+(i+1)+" does not contain enough integers or input is incorrect format.");
+					System.out.println(scanner.next());
+				}
+				sBoxes[i][j][k] = scanner.nextInt();
+			}
+			scanner.nextLine();
+		}
+		if(i != numberOfSboxes - 1){
+			while(!scanner.hasNextInt())
+				scanner.nextLine();
+		}
+	}
+	
 	
 	
 	printUsefulData();
 	
 	//return void;	
 }
+
+public static void combine(String s){
+	
+}
+
 
 public static void printUsefulData(){ // to make programming easier
 	
@@ -231,36 +282,59 @@ public static void printUsefulData(){ // to make programming easier
 		
 	System.out.println("pc1_key: ");
 	for(int i = 0; i!=pc1_key.length; ++i)
-		System.out.println(pc1_key[i]+" ");
+		System.out.print(pc1_key[i]+" ");
 	System.out.println();
 	
 	System.out.println("pc2_key: ");
 	for(int i = 0; i!=pc2_key.length; ++i)
-		System.out.println(pc2_key[i]+" ");
+		System.out.print(pc2_key[i]+" ");
 	System.out.println();
 	
 	System.out.println("rotationsched_key: ");
 	for(int i = 0; i!=rotationsched_key.length; ++i)
-		System.out.println(rotationsched_key[i]+" ");
+		System.out.print(rotationsched_key[i]+" ");
 	System.out.println();
 	
 	System.out.println("initialPerm: ");
 	for(int i = 0; i!=initialPerm.length; ++i)
-		System.out.println(initialPerm[i]+" ");
+		System.out.print(initialPerm[i]+" ");
 	System.out.println();
 	
 	System.out.println("expansionPerm: ");
 	for(int i = 0; i!=expansionPerm.length; ++i)
-		System.out.println(expansionPerm[i]+" ");
+		System.out.print(expansionPerm[i]+" ");
 	System.out.println();
 	
 	System.out.println("pBox: ");
 	for(int i = 0; i!=pBox.length; ++i)
-		System.out.println(pBox[i]+" ");
+		System.out.print(pBox[i]+" ");
 	System.out.println();
 	
-	System.out.println("blockSize: "+ blockSize);
-	System.out.println("blockSize: "+ blockSize);
+	System.out.println("number of S-boxes: "+ numberOfSboxes);
+	System.out.println();
+	
+	System.out.println("Row: ");
+	for(int i = 0; i!=rowSelection.length; ++i)
+		System.out.print(rowSelection[i]+" ");
+	System.out.println();
+	
+	System.out.println("Col: ");
+	for(int i = 0; i!=rowSelection.length; ++i)
+		System.out.print(colSelection[i]+" ");
+	System.out.println();
+	System.out.println();
+	
+	for(int i = 0; i != numberOfSboxes; ++i){
+		System.out.println("Sbox "+(i+1));
+		for(int j = 0; j!= sBoxes[i].length; ++j){
+			for(int k = 0; k != sBoxes[i][j].length; ++k){
+				System.out.print(sBoxes[i][j][k]+" ");
+			}
+			System.out.println();
+		}
+		System.out.println();
+		System.out.println();
+	}
 	
 	
 	//static int numberOfSboxes;
@@ -303,7 +377,7 @@ public static void main(String[] args){
 	
 	
 	String hi = BinTohex("01100110");
-	System.out.println(input);
+	//System.out.println(input);
 	
 
 
